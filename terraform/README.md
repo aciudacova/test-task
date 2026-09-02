@@ -27,11 +27,14 @@ bootstrap.sh   Creates the state bucket, writes backend.hcl
 backend.hcl    Name of the state bucket (commit this)
 ```
 
-`.gitignore` lives in the repo root.
-
 ## Prerequisites
 
-Terraform >= 1.15.3, AWS CLI (configured), kubectl.
+Ensure you have the following tools installed and configured before proceeding:
+
+* **[Terraform](https://developer.hashicorp.com/terraform/downloads)** `>= 1.15.3`
+* **[AWS CLI](https://aws.amazon.com/cli/)** configured with valid credentials. The IAM user or role must have sufficient permissions to provision the infrastructure (e.g., `AdministratorAccess` for development/testing).
+* **[kubectl](https://kubernetes.io/docs/tasks/tools/)** for interacting with the provisioned Kubernetes cluster.
+
 
 ## Deploy
 
@@ -39,6 +42,7 @@ Terraform >= 1.15.3, AWS CLI (configured), kubectl.
 cd terraform/
 ./bootstrap.sh                            # once: creates the state bucket
 terraform init -backend-config=backend.hcl
+terraform plan
 terraform apply
 ```
 
@@ -110,10 +114,13 @@ kubectl get nodeclaims -L karpenter.sh/nodepool,kubernetes.io/arch,karpenter.sh/
 ```
 
 ```
-NAME        TYPE        NODEPOOL   ARCH    CAPACITY-TYPE
-graviton-*  c7g.xlarge  graviton   arm64   spot
-x86-*       c6i.large   x86        amd64   spot
+NAME        TYPE        CAPACITY  ZONE        NODE          READY  AGE  NODEPOOL  ARCH   CAPACITY-TYPE
+graviton-*  c7g.xlarge  spot      eu-west-1b  ip-10-0-24-*  True   20m  graviton  arm64  spot
+x86-*       c6i.large   spot      eu-west-1c  ip-10-0-34-*  True   91m  x86       amd64  spot
 ```
+
+Karpenter nodes carry `karpenter.sh/capacity-type`; the system node group uses
+`eks.amazonaws.com/capacityType` instead, and is always `ON_DEMAND`.
 
 New nodes only appear when pods don't fit on existing ones. Karpenter then picks the smallest
 instance that fits, so **node size follows your `resources.requests`**, not this Terraform code.
